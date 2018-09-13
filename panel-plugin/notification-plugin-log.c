@@ -93,6 +93,15 @@ notification_plugin_clear_log_dialog (void) {
 }
 
 
+
+static void
+notification_plugin_notification_action (GtkMenuItem *menuItem, gpointer user_data) {
+    system (user_data);
+    g_free (user_data);
+}
+
+
+
 void
 notification_plugin_menu_populate (NotificationPlugin *notification_plugin)
 {
@@ -182,13 +191,14 @@ notification_plugin_menu_populate (NotificationPlugin *notification_plugin)
     /* Notifications are only shown until LOG_DISPLAY_LIMIT is hit */
     for (i = numberof_groups; i > log_length; i--) {
       GtkWidget *grid;
-      GtkWidget *summary, *body, *app_icon;
+      GtkWidget *summary, *body, *app_icon, *button;
       const gchar *group = groups[i];
       const char *format = "<b>\%s</b>";
       const char *tooltip_format = "<b>\%s</b> - \%s\n\%s";
       const char *tooltip_format_simple = "<b>\%s</b> - \%s";
       char *markup;
       gchar *app_name;
+      gchar *action;
       gchar *tooltip_timestamp = NULL;
       gchar *tmp;
       GTimeVal tv;
@@ -203,6 +213,7 @@ notification_plugin_menu_populate (NotificationPlugin *notification_plugin)
         else
           numberof_notifications_shown++;
       }
+      
 G_GNUC_BEGIN_IGNORE_DEPRECATIONS
       mi = gtk_image_menu_item_new ();
 G_GNUC_END_IGNORE_DEPRECATIONS
@@ -279,6 +290,8 @@ G_GNUC_END_IGNORE_DEPRECATIONS
       else {
         gtk_grid_attach (GTK_GRID (grid), GTK_WIDGET (summary), 1, 0, 1, 1);
         gtk_grid_attach (GTK_GRID (grid), GTK_WIDGET (body), 1, 1, 1, 1);
+
+	
         markup = g_strdup_printf (tooltip_format, app_name, tooltip_timestamp, tmp);
       }
       g_free (tmp);
@@ -291,6 +304,10 @@ G_GNUC_END_IGNORE_DEPRECATIONS
       gtk_container_add (GTK_CONTAINER (mi), GTK_WIDGET (grid));
       gtk_menu_shell_append (GTK_MENU_SHELL (menu), mi);
       gtk_widget_show (mi);
+      
+      action = g_key_file_get_string (notify_log, group, "action-id-0", NULL);
+      g_signal_connect (mi, "activate", G_CALLBACK (notification_plugin_notification_action),
+			action);
     }
     g_strfreev (groups);
     g_key_file_free (notify_log);
